@@ -1,17 +1,63 @@
 
-int SI_player_position = 3;
-bool SI_gun_active = true;
-bool SI_charged = true;
 
-int missile_x[6];
-int missile_y[6];
-int n_missiles = 5;
+bool game_over = false;
+
+void SI_add_asteroids() {
+  static byte n_ticks = 0;
+  static byte level = 0;
+
+  // asteroid reaches wing level, therefore you can't shoot it
+  if (asteroid_field[7] > 0) {
+    game_over = true;
+    return;
+  }
+  
+  if (n_ticks++ > 25) {
+    n_ticks = 0;
+    level++;
+
+    if (level > 5) {
+      level = 0;
+      spaceInvadersSpeed -= 10;
+      for (int i = 0; i < gameStartSongLength; i++) {
+        gamer.playTone(gameStartNotes[i]);
+        delay(25);
+      }
+    } else {
+      gamer.stopTone();
+    }
+
+    asteroid_field[0] = random(255); // backwards MSB <-> LSB
+
+    for (int i = 7; i > 0; i--) {
+      asteroid_field[i] = asteroid_field[i - 1];
+    }
+  }
+}
+
+void SI_check_collision() {
+  if (CHECK_BIT(asteroid_field[missile_y], missile_x)) {
+    //((asteroid_field[missile_y] & (1 << missile_x)) >> missile_x) == 1) {
+    asteroid_field[missile_y] &= ~(1 << missile_x);
+    SI_gun_active = true;
+    SI_score++;
+    gamer.playTone(250);
+  } else {
+    gamer.stopTone();
+  }
+}
+
+void SI_draw_asteroids() {
+  for (int row = 0; row < 8; row++) {
+    for (int col = 0; col < 8; col++) {
+      if (CHECK_BIT(asteroid_field[row], col)) {
+        gamer.display[col][row] = 1;
+      }
+    }
+  }
+}
 
 void SI_draw_player() {
-  for (int i = 0; i < n_missiles; i++) {
-    gamer.display[0][i] = 1;
-  }
-
   gamer.display[SI_player_position][6] = 1;
   gamer.display[(SI_player_position - 1) < 0 ? 0 : SI_player_position - 1][7] = 1;
   gamer.display[SI_player_position][7] = 1;
@@ -20,18 +66,8 @@ void SI_draw_player() {
 
 void SI_update_player_position() {
   if (gamer.isPressed(UP)) {
-    if (n_missiles) {
+    if (SI_gun_active == true) {
       SI_shoot();
-      //gamer.playTone(400);
-    }
-    //delay(50);
-  }
-  else if (gamer.isPressed(DOWN)) {
-    if (SI_charged) {
-      //SI_bomb();
-      //SI_charged = false;
-      //gamer.playTone(60);
-      //delay(50);
     }
   }
   else if (gamer.isPressed(LEFT)) {
@@ -42,43 +78,56 @@ void SI_update_player_position() {
     SI_player_position++;
     SI_player_position = (SI_player_position > 7) ? 7 : SI_player_position;
   }
-  else {
-    gamer.stopTone();
-  }
 }
 
 void SI_draw_missiles() {
-  for (int i = 0; i < 6; i++) {
-    if (missile_x[i] == -1) continue;
-    gamer.display[missile_x[i]][missile_y[i]] = 1;
+  if (SI_gun_active == false) {
+    gamer.display[missile_x][missile_y] = 1;
   }
 }
 
 void SI_update_missiles() {
-  for (int i = 0; i < 6; i++) {
-    if (missile_x[i] == -1) {
-      continue;
+  if (SI_gun_active == false) {
+    if (--missile_y == -1) {
+      missile_y = 7;
+      SI_gun_active = true;
     }
-    missile_y[i]--;
-    if (missile_y[i] < 0) {
-      missile_x[i] = -1;
-      n_missiles++;
-    }
-  }
-
-  if (n_missiles > 1) {
-    SI_gun_active = true;
   }
 }
 
 void SI_shoot() {
-  if (n_missiles) {
-    missile_x[n_missiles] = SI_player_position;
-    missile_y[n_missiles] = 6;
-    n_missiles--;
-  }
+  SI_gun_active = false;
+  missile_x = SI_player_position;
+  missile_y = 6;
 }
 
-void SI_bomb() {
+void SI_check_game_over() {
+  if (CHECK_BIT(asteroid_field[6], SI_player_position)) { // asteroid hits top pod
+    game_over = true;
+  }
+  // asteroid hits left wing
+  if (CHECK_BIT(asteroid_field[7], (SI_player_position - 1) < 0 ? 0 : SI_player_position - 1)) {
+    game_over = true;
+  }
+  // asteroid hits right wing
+  if (CHECK_BIT(asteroid_field[7], (SI_player_position + 1) > 7 ? 7 : SI_player_position + 1)) {
+    game_over = true;
+  }
+
+  if (game_over) {
+    for (int i = 0; i < gameOverSongLength; i++) {
+      gamer.playTone(gameOverNotes[i]);
+      delay(100);
+    }
+    // Turn off sound.
+    gamer.stopTone();
+    gamer.printString("Game over");
+    delay(100);
+    gamer.printString("Score");
+    delay(500);
+    gamer.showScore(SI_score);
+    delay(2000);
+    isPlaying = false;
+  }
 }
 
