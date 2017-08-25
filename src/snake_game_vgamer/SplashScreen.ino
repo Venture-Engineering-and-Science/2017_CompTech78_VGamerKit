@@ -72,6 +72,27 @@ byte SimonScreen[8] = {
     B00011000,
     B00000000};
 
+byte TRScreen[8] = {
+    B11111000,
+    B00100000,
+    B00100000,
+    B00101110,
+    B00101001,
+    B00001110,
+    B00001001,
+    B00001001};
+
+byte STScreen[8] = {
+    B00000000,
+    B00000100,
+    B00000100,
+    B00001100,
+    B00011100,
+    B00111100,
+    B01111100,
+    B01111110,
+};
+
 void showScreen(int screen) {
     switch (screen) {
         case SNAKE:
@@ -94,6 +115,12 @@ void showScreen(int screen) {
             break;
         case SIMON:
             gamer.printImage(SimonScreen);
+            break;
+        case TEMPLE_RUN:
+            gamer.printImage(TRScreen);
+            break;
+        case STACKER:
+            gamer.printImage(STScreen);
             break;
     }
 }

@@ -141,7 +141,7 @@ void BO_moveBall() {
         gamer.playTone(wallNote);
     } // hits a paddle, reverse its direction
     else if ((BO_ballY == 7) &&
-            (BO_paddle_pos < BO_ballX) &&
+            (BO_paddle_pos <= BO_ballX) &&
             (BO_ballX < (BO_paddle_pos + BO_paddle_width))) {
         hits++;
         BO_ballY = 6;
